@@ -1,0 +1,137 @@
+---
+title: "Assignment 3"
+author: "Calin Anca, 12048704"
+date: "6/19/2020"
+output: html_document
+---
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(ggplot2)
+library(tidyverse)
+wine = read.csv("winequality-red.csv", header = TRUE, sep = ";")
+plots = ggplot(data = wine)
+```
+
+_Question 1_  
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plots + geom_histogram(aes(x = wine$fixed.acidity)) + labs(x = "Fixed Acidity")
+plots + geom_histogram(aes(x = wine$volatile.acidity)) + labs(x = "Volatile Acidity")
+plots + geom_histogram(aes(x = wine$citric.acid)) + labs(x = "Citric Acid")
+plots + geom_histogram(aes(x = wine$residual.sugar)) + labs(x = "Residual Sugar")
+plots + geom_histogram(aes(x = wine$chlorides)) + labs(x = "Chlorides")
+plots + geom_histogram(aes(x = wine$free.sulfur.dioxide)) + labs(x = "Free Sulfur Dioxide")
+plots + geom_histogram(aes(x = wine$total.sulfur.dioxide)) + labs(x = "Total Sulfur Dioxide")
+plots + geom_histogram(aes(x = wine$density)) + labs(x = "Density")
+plots + geom_histogram(aes(x = wine$pH)) + labs(x = "pH")
+plots + geom_histogram(aes(x = wine$sulphates)) + labs(x = "Sulphates")
+plots + geom_histogram(aes(x = wine$alcohol)) + labs(x = "Alcohol")
+```
+
+_Question 2_  
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+round(cor(wine[,1:length(wine)-1]),3)
+```
+1. Fixed acidity is positively correlated with the citric acid and density and negatively correlated with the pH.
+2. Volatile acidity is negatively correlated with the citric acid.
+3. The level of free sulful dioxide is correlated with the total sulfur dioxide. The level of total sulfur dioxide might be a linear combination of the level of free sulfur dioxide.
+4. The pH and the citric acid are negativley correlated. Given the significance of the pH, a higher level represents a lower acidity.
+5. The level of alcochol seems to be negatively correlated with the density.
+
+_Question 3_  
+```{r include=FALSE}
+wine.pca = prcomp(wine[,1:length(wine)-1], scale. = TRUE)
+```
+Varince of each component:  
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+var_components = wine.pca$sdev^2
+round(var_components, 3)
+```
+Proportion of variance:  
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+prop_var_components = (wine.pca$sdev^2)/11
+round(prop_var_components, 3)
+```
+Partial correlations (columns represent components, rows represent predictors):  
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+partial_correlations = matrix(0, nrow = 11, ncol = 11)
+for (i in 1:11) {
+  partial_correlations[,i] = wine.pca$sdev[i]*wine.pca$rotation[,i]
+}
+round(partial_correlations, 3)
+```
+
+_Question 4_\
+1. Eigenvalue criterion:\
+```{r echo=FALSE}
+round(var_components, 3)
+```
+Based on the eigenvalue criterion, the first 4 components should be kept.\
+2. Proportion of the variance explained:\
+```{r echo=FALSE}
+summary(wine.pca)
+```
+2.1 85% of the variance explained:\
+Based on this criterion, the first 6 components should be kept. They explain 85.52% of the variance.\
+2.2 90% of the variance explained:\
+Based on this criterion, the first 7 components should be kept. They explain 90.83% of the variance.\
+3. Scree plot criterion:\
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+screeplot(wine.pca, type = "lines", main = "Wine PCA Screeplot")
+```  
+
+Based on the scree plot criterion, the first 10 components should be considered. The 11th one is not even present in the graph. Besides that, all 10 are considered, because the graph doesn't visibly flatten.\
+4. Minimum communality criterion:\
+```{r}
+sum(apply((partial_correlations^2)[,1:5], MARGIN = 1, sum) >= 0.5)
+```
+It can be observed that when keeping 5 components, all predictors have a communality value of at least 0.5.
+
+_Question 5_\
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+wine.pca$rotation[,1:5]
+```
+
+Component 1 - Acidity component:\
+Fixed acidity and citric acid tend to move together in the same direction, while pH moves to the opposite direction.\
+
+Component 2 - Sulfur dioxide component:\
+Assuming a positive linear relationship between the free sulfur and total sulfur dioxide, they tend to move in the same direction.\
+
+Component 3 - Alcohol component:\
+Alcohol moves in the same direction as the free sulfur dioxide, but in opposite direction with the volatile acidity.\
+
+Component 4 - Chlorides and sulphates component:\
+They tend to move in the same direction.\
+
+Component 5 - Residual sugar component.
+
+_Question 6_\
+1. Instead of using the predictors (which are correlated) in the regression models, the components of PCA are going to be used. The problem of multicollinearity is solved, because the components, which captures most of the varince of the predictors, are not correlated.\
+2. Yes and no. Yes, because there might indeed be a linear relationship between the predictors and the target variables and because the effect of multicollineartiy is reduced by using PCA. No, because not all the predictors are normally distributed. Besides that, the target variable is a categorial variable, while the predictions based on the linear regression model are numerical (continuous) variables.\
+3.\
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+df_regression = as.data.frame(wine.pca$x)
+df_regression$quality = wine$quality
+K <- 5
+## cv_error is used to store MSE_1, MSE_2,...MSE_K
+cv_error <- numeric(length=K)
+set.seed(1234)
+# Randomly split data into K subsets
+folds <- sample(rep(1:K, length = nrow(wine.pca$x)))
+# Repeat K times
+for(i in 1:K) {
+  # Extract training and test sets
+  train <- as.data.frame(df_regression[folds != i, ])
+  test <- as.data.frame(df_regression[folds == i, ])
+  m <- lm(quality ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + PC11, data = train) #all components considered
+  test <- mutate(test, pred = predict(m, newdata = test))
+  cv_error[i] <- summarize(test, error = mean((test$quality - pred)^2))$error
+}
+# Estimate test MSE using average across all K folds
+cv_error_estimate <- round(mean(cv_error),3)
+
+all_errors = c(0.644,0.548,0.444,0.443,0.437,0.437,0.432,0.43,0.423,0.422,0.423) #easy to check all values by changing the lm formula
+components = seq(1:11)
+plot(x = components, y = all_errors, xlab = "Components considered", ylab = "Error", ylim = c(0.4, 0.7))
+```
+
+In conclusion, 9 components should be kept.
