@@ -1,0 +1,224 @@
+---
+title: "Assignment 2"
+author: "Calin Anca, 12048704"
+date: "6/10/2020"
+output: html_document
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+load("credit.rda")
+attach(credit)
+plots = ggplot(data = credit)
+```
+
+_Question 1_  
+```{r echo=FALSE, message=FALSE, warning=FALSE}  
+#checking_status - cat.variable
+plots + geom_bar(mapping = aes(x = checking_status))
+table(checking_status)
+
+#duration - num. variable
+plots + geom_histogram(mapping = aes(x = duration))
+ov_2y_bad = filter(credit, duration>24 & class == 'bad')
+ov_2y_bad_ratio = length(ov_2y_bad$duration)/length(duration)
+cat("75% of the credits have a duration below 2 years. Out of the ones that are over 2 years", round(ov_2y_bad_ratio*100,2), "% are bad.")
+
+#credit history - cat. variable
+plots + geom_bar(mapping = aes(x = credit_history))
+table(credit_history)
+bad_credits = table(credit_history)['A30'] + table(credit_history)['A31']
+cat(bad_credits, "people had delays in paying off or have critical accounts.")
+
+#purpose - cat. variable
+plots + geom_bar(mapping = aes(x = purpose))
+table(purpose)
+
+#credit amount - num. variable
+plots + geom_histogram(mapping = aes(x = credit_amount))
+cat("A skewed distribution can be observed. The fact that the average,", mean(credit_amount), ", is higher than the median,", median(credit_amount), ", indicates that a few 'high-amounts' loans have a big impact on the pool of loans.")
+
+#savings - cat. variable
+plots + geom_bar(mapping = aes(x = savings))
+table(savings)
+
+#employment - cat. variable
+plots + geom_bar(mapping = aes(x = employment))
+table(employment)
+
+#installment rate - cat. varibale
+plots + geom_bar(mapping = aes(x = installment_rate))
+table(installment_rate)
+
+#personal status - cat. variable
+plots + geom_bar(mapping = aes(x = personal_status))
+table(personal_status)
+
+#other parties - cat. variable
+plots + geom_bar(mapping = aes(x = other_parties))
+table(other_parties)
+
+#residence since - cat. variable
+plots + geom_bar(mapping = aes(x = residence_since))
+table(residence_since)
+
+#property magnitude - cat. variable
+plots + geom_bar(mapping = aes(x = property_magnitude))
+table(property_magnitude)
+
+#age - num. variable
+plots + geom_histogram(mapping = aes(x = age))
+plots + geom_histogram(mapping = aes(x = age, fill = class))
+bl_27 = filter(credit, age<=27 & class == 'bad')
+bl_27_bad_ratio = length(bl_27$age)/length(age[age<=27])
+ov_42 = filter(credit, age<=42 & class == 'bad')
+ov_42_bad_ratio = length(ov_42$age)/length(age[age<=42]) 
+cat("The average age is: ", round(mean(age)),".", "For people below 27 - ", round(bl_27_bad_ratio*100,2), "% credits were labeled as bad.", "For people over 42 - ", round(ov_42_bad_ratio*100,2), "% credits were labeled as bad.")
+
+#other payments plans - cat. variable
+plots + geom_bar(mapping = aes(x = other_payment_plans))
+table(other_payment_plans)
+
+#housing - cat. variable
+plots + geom_bar(mapping = aes(x = housing))
+table(housing)
+
+#existing credits - cat. variable
+plots + geom_bar(mapping = aes(x = existing_credits))
+table(existing_credits)
+
+#job - cat. variable
+plots + geom_bar(mapping = aes(x = job))
+table(job)
+
+#num. dependents - cat. variable
+plots + geom_bar(mapping = aes(x = num_dependents))
+table(num_dependents)
+
+#telephone - cat. variable
+plots + geom_bar(mapping = aes(x = telephone))
+table(telephone)
+
+#foreign_worker - cat. variable
+plots + geom_bar(mapping = aes(x = foreign_worker))
+table(foreign_worker)
+workers_table = table(foreign_worker, class)
+workers_table
+cond_prob_workers = prop.table(workers_table, 1)
+cond_prob_workers
+cat(length(foreign_worker[foreign_worker == "A201"]), "are foreign workers. Given that a worker is foreign, there is an almost 3 times higher chance that the customer would default on the loan.")
+```
+
+_Question 2_  
+```{r echo=FALSE, message=FALSE, warning=FALSE}  
+#relationship between duration and class
+plots + geom_histogram(mapping = aes(x = duration, fill = class))
+plots + geom_histogram(mapping = aes(x = duration, fill = class), position = 'fill')
+bl_2y_bad = filter(credit, duration<=24 & class == 'bad')
+bl_2y_bad_ratio = length(bl_2y_bad$duration)/length(duration)
+cat("As shown before, 75% of the credits have a duration of less than two years. Out of those of over 2 years, 10.2% are bad. Whereas, for the ones that are below 2 years, 19.8% are labeled as bad.")
+
+#relationship between credit history and class
+plots + geom_bar(mapping = aes(x = credit_history))
+credit_history_table = table(credit_history, class)
+credit_history_table
+cond_credit_history_table = prop.table(credit_history_table, 1)
+cond_credit_history_table
+plots + geom_bar(mapping = aes(x = credit_history, fill = class))
+plots + geom_bar(mapping = aes(x = credit_history, fill = class), position = "fill")
+cat("It can be observed that people in categories A30 and A31, delays in paying or critical accounts, have a higher chance to be labeled as bad. On the other hand, because the history of the client is taken into consideration, people in the forementioned categories receive fewer credits anyway.")
+cat("Given that people are in categories A30 or A31, they have an almost double probabilty of defaulting.")
+
+#relationship between credit amount and class
+plots + geom_histogram(mapping = aes(x = credit_amount))
+plots + geom_histogram(mapping = aes(x = credit_amount, fill = class))
+plots + geom_histogram(mapping = aes(x = credit_amount, fill = class), position = "fill")
+ov_3972_bad = filter(credit, credit_amount>3972 & class == "bad")
+ov_3972_bad_ratio = length(ov_2y_bad$credit_amount)/length(credit_amount)
+bl_3972_bad = filter(credit, credit_amount<=3972 & class == "bad")
+bl_3972_bad_ratio = length(bl_2y_bad$credit_amount)/length(credit_amount)
+cat("75% of the credits are below 3972 marks. Out of the ones that are over 3972, 10.2% are labeled as bad. For the ones below 3972, 19.8% are labeled as bad.")
+cat("It can be observed that the same ratios are obtaines as for the lenghts of the credits - over and below 2 years. This fact might indicate a strong relationship between the duration and the amount of a credit.")
+
+#relationship between age and class
+plots + geom_histogram(mapping = aes(x = age))
+plots + geom_histogram(mapping = aes(x = age, fill = class))
+plots + geom_histogram(mapping = aes(x = age, fill = class), position = "fill")
+cat("As observed above, for people below 27 -  36.77 % credits were labeled as bad. For people over 42 -  31.37 % credits were labeled as bad.")
+
+#relationship between foreign worker and class
+plots + geom_bar(mapping = aes(x = foreign_worker, fill = class))
+plots + geom_bar(mapping = aes(x = foreign_worker, fill = class), position = "fill")
+foreign_bad = filter(credit, foreign_worker == "A201" & class == "bad")
+cat("As stated above, 96.3% of the credits are made to foreign workers. Out of these 963 people, 296 were labeled as bad. The marginal probability tabel presented above indicated that the chance of defaulting is 3 times higher for a foreign worker.")
+```
+
+_Question 3_  
+```{r echo=FALSE, message=FALSE, warning=FALSE}  
+#credit history & class
+par(mfrow = c(3,2))
+pie(table(filter(credit, credit_history == "A30")$class), main = "History A30", radius = 1.1)
+pie(table(filter(credit, credit_history == "A31")$class), main = "History A31", radius = 1.1)
+pie(table(filter(credit, credit_history == "A32")$class), main = "History A32", radius = 1.1)
+pie(table(filter(credit, credit_history == "A33")$class), main = "History A33", radius = 1.1)
+pie(table(filter(credit, credit_history == "A34")$class), main = "History A34", radius = 1.1)
+cond_credit_history_table
+cat("Given that a someone is part of categories A30 or A31, he/she has a probability of 37.5%, respectively, 42.83% of being a good payer, compared with 68.11, 68.12 and 82.93% for people in cateogires A32, A33, A34.")
+
+#foreign worker & class
+par(mfrow = c(1,2))
+pie(table(filter(credit, foreign_worker == "A201")$class), main = "A201 (foreign worker)", radius = 1)
+pie(table(filter(credit, foreign_worker == "A202")$class), main = "A202", radius = 1)
+cond_prob_workers
+cat("Given that is a foreign worker, he/she has a probability of 69.26% of being a good payer compared to 89.19%.")
+```
+
+_Question 4_  
+```{r echo=FALSE, message=FALSE, warning=FALSE}  
+regressor = lm(duration ~ credit_amount)
+intercept_reg = as.numeric(regressor$coefficients[1])
+slope_reg = as.numeric(regressor$coefficients[2])
+plots + geom_point(mapping = aes(x = credit_amount, y = duration)) + geom_abline(slope = slope_reg, intercept = intercept_reg)
+cat("The correlation is:", cor(x = credit_amount, y = duration))
+summary(regressor)
+cat("Common sense suggest a positive relation between the duration and the amount of a credit. A correlation of 0.62 seems to indicate this. On the other hand there are plenty of observations that oppose the trend: high amounts with short duration and vice-versa.")
+cat("Given that both, the slope and the intercept, of the regressor are statistically significant, it might be said that there is a linear relationship between the two observed variables.")
+cat("It might be a good idea to test two diffrent models, one which considers the duration and another one that considers the credit amount and to compare their reliability.")
+
+plots + geom_point(mapping = aes(x = credit_amount, y = duration, shape = class, color = class)) + geom_hline(yintercept = 24) + geom_vline(xintercept = 3972)
+cat("It can be observed that there is a tendency for people with high duration and credit amount to be labeled as bad. Actually, the number of people with bad credits that have a duration higher than 2 years and an amount higher than 3972 is almost equal - 102 compared to 105.")
+```
+
+_Question 5_  
+1 - Young people with high credit amount  
+```{r echo=FALSE, message=FALSE, warning=FALSE}  
+young_high_amount = filter(credit, age <=27 & credit_amount >= 3972)
+young_high_amount_bad_ratio = sum(young_high_amount$class == "bad")/length(young_high_amount$class)
+cat("51.15% of people that are under 27 and have a credit higher than 3972 default. Young and reckless, baby.")
+```
+
+2 - Renting when you have at least 2 credits  
+```{r echo=FALSE, message=FALSE, warning=FALSE}  
+renting_existing_credits = filter(credit, housing == "A151" & existing_credits != 1)
+renting_existing_credits_bad_ratio = sum(renting_existing_credits$class == "bad")/length(renting_existing_credits$class)
+cat("45% of the people who rent and have at least 2 credits default on their loans.")
+```
+
+_Question 6_  
+1.  
+```{r echo=FALSE, message=FALSE, warning=FALSE}  
+employment_table = table(employment, class)
+employment_table
+cond_employment_table = prop.table(employment_table, 1)
+cond_employment_table
+cat("It can be oberved that people that were employed for a period shorter than 1 year (category A72) have the highest probability of defaulting. Compared with the other categories of employed people the probability of defaulting is at least 10% higher. What should be highlighted is that they also have a higher probability of defaulting than uneployed people.")
+```
+
+2.  
+```{r echo=FALSE, message=FALSE, warning=FALSE}  
+plots + geom_bar(mapping = aes(x = installment_rate, fill = class))
+plots + geom_bar(mapping = aes(x = installment_rate, fill = class), position = "fill")
+cat("It can be observed that the smaller the installment rate, the higher the possibility of default.")
+```
+
